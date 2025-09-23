@@ -6,11 +6,14 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
+
+import java.util.List;
 
 import static org.springframework.ai.chat.memory.ChatMemory.CONVERSATION_ID;
 
@@ -70,19 +73,30 @@ public class AIDoctorController {
      * 接收用户查询和会话ID，返回AI助手的回复内容
      *
      * @param query          用户的查询内容
-     * @param conversionId 会话ID
+     * @param conversationId 会话ID
      * @return AI助手的回复内容字符串
      */
     @GetMapping("/call")
     public Flux<String> call(@RequestParam(value = "query") String query,
-                             @RequestParam(value = "conversion_id") String conversionId,
+                             @RequestParam(value = "conversation_id") String conversationId,
                              HttpServletResponse response
     ) {
         response.setCharacterEncoding("UTF-8");
         return chatClient.prompt(query)
                 .advisors(
-                        a -> a.param(CONVERSATION_ID, conversionId)
+                        a -> a.param(CONVERSATION_ID, conversationId)
                 )
                 .stream().content();
+    }
+
+    /**
+     * 获取指定会话的所有消息记录
+     *
+     * @param conversationId 会话ID
+     * @return 指定会话的消息列表
+     */
+    @GetMapping("/messages")
+    public List<Message> messages(@RequestParam(value = "conversation_id") String conversationId) {
+        return messageWindowChatMemory.get(conversationId);
     }
 }
